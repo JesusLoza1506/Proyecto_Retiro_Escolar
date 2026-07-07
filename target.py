@@ -94,6 +94,7 @@ def render_target(df):
         pct_cero.append(pct_c_val)
         pct_positivo.append(pct_p_val)
         
+       # Reemplaza el bloque dentro del for por este código limpio con funciones NumPy:
         data_pos = data[data > 0].values
         
         # Blindaje para Matplotlib Boxplot: Si una serie está vacía, inyectamos un array seguro con [0.0]
@@ -103,12 +104,13 @@ def render_target(df):
             data_pos_boxplot.append(data_pos)
         
         stats_positivo.append({
-            'Grado': grado, 'N_Escuelas_Positivo': len(data_pos),
-            'Media_Positivo': data_pos.mean() if len(data_pos) > 0 else 0.0,
-            'Mediana_Positivo': data_pos.median() if len(data_pos) > 0 else 0.0,
-            'Std_Positivo': data_pos.std() if len(data_pos) > 1 else 0.0,
-            'Min_Positivo': data_pos.min() if len(data_pos) > 0 else 0.0,
-            'Max_Positivo': data_pos.max() if len(data_pos) > 0 else 0.0
+            'Grado': grado, 
+            'N_Escuelas_Positivo': len(data_pos),
+            'Media_Positivo': np.mean(data_pos) if len(data_pos) > 0 else 0.0,
+            'Mediana_Positivo': np.median(data_pos) if len(data_pos) > 0 else 0.0, # <-- CORREGIDO USANDO NP.MEDIAN
+            'Std_Positivo': np.std(data_pos) if len(data_pos) > 1 else 0.0,
+            'Min_Positivo': np.min(data_pos) if len(data_pos) > 0 else 0.0,
+            'Max_Positivo': np.max(data_pos) if len(data_pos) > 0 else 0.0
         })
 
     stats_pos_df = pd.DataFrame(stats_positivo)
