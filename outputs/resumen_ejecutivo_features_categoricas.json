@@ -1,0 +1,26 @@
+{
+  "fecha_analisis": "2026-07-06 22:00:52",
+  "total_escuelas": 30702,
+  "hallazgos_principales": {
+    "📊 GESTIÓN": {
+      "Pública": "0.61% - 0.70%",
+      "Privada": "0.41% - 0.88%",
+      "Parroquial": "0.96% - 2.21% (Crítico)"
+    },
+    "🏘️ ÁREA CENSO": {
+      "Rural": "0.98% - 2.39% (Mayor Retiro)",
+      "Urbana": "0.70% - 1.06%",
+      "Diferencia": "+0.28 a +1.39 pp (Rural > Urbana)"
+    },
+    "🏔️ REGIÓN NATURAL": {
+      "Selva": "1.27% - 2.45% (Crítico)",
+      "Costa": "0.90% - 1.23%",
+      "Sierra": "0.65% - 1.79%"
+    },
+    "👥 TIPO DE SEXO": {
+      "Mixto": "0.85% - 1.69%",
+      "Masculino": "0.37% - 0.98%",
+      "Femenino": "0.34% - 0.79%"
+    }
+  }
+}

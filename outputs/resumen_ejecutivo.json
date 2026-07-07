@@ -1,0 +1,47 @@
+{
+  "proyecto": "Predicción de Retiro Escolar - Sistema Educativo Peruano",
+  "fecha_ejecucion": "2026-07-06 23:09:29",
+  "arquitectura": "Two-stage multi-output (Clasificación + Regresión)",
+  "datos": {
+    "total_registros": 46400,
+    "train": 30031,
+    "inference": 15380,
+    "inference_nuevas": 318,
+    "features": 32,
+    "grados": 5
+  },
+  "etapa_1_clasificacion": {
+    "modelo": "LightGBM Classifier",
+    "validacion": "Temporal (2022→2023)",
+    "auc_promedio": 0.6735030016763934,
+    "f1_promedio": 0.3311758503181162,
+    "mejor_grado": "G5",
+    "mejor_auc": 0.6852028046556888
+  },
+  "etapa_2_regresion": {
+    "modelo": "LightGBM Regressor (Tweedie)",
+    "mae_promedio": 0.04549257992857374,
+    "r2_promedio": 0.3360512127436898,
+    "mejor_grado": "G3",
+    "mejor_r2": 0.37198840909414344
+  },
+  "predicciones_finales": {
+    "escuelas_procesadas": 15380,
+    "retiro_promedio_g1": 0.007174559770874209,
+    "retiro_promedio_g5": 0.021730258200432912,
+    "porcentaje_pred_positivo_g1": 18.61508452535761,
+    "porcentaje_pred_positivo_g5": 27.58777633289987
+  },
+  "archivos_generados": [
+    "modelo_clasificacion_g1.pkl - modelo_clasificacion_g5.pkl",
+    "modelo_regresion_g1.pkl - modelo_regresion_g5.pkl",
+    "label_encoders.pkl",
+    "predicciones_finales.csv",
+    "resultados_clasificacion.csv",
+    "resultados_regresion.csv",
+    "resumen_buckets.csv",
+    "feature_importance_clasificacion.png",
+    "residuos_regresion.png",
+    "predicciones_vs_reales_regresion.png"
+  ]
+}

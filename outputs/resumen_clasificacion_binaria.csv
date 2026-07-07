@@ -1,0 +1,6 @@
+Grado Escolar,AUC-ROC,F1 (Corte Estándar 0.5),F1 (Con Umbral Óptimo),Umbral Óptimo Seleccionado,Casos Positivos Train,Casos Positivos Validación
+Grado 1,0.683,0.32,0.325,0.481,1984,1783
+Grado 2,0.66,0.325,0.327,0.487,2345,2071
+Grado 3,0.666,0.333,0.337,0.531,2648,2166
+Grado 4,0.674,0.337,0.339,0.491,2873,2206
+Grado 5,0.685,0.312,0.328,0.569,2660,1932

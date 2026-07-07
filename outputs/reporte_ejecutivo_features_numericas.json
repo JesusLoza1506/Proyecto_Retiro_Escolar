@@ -1,0 +1,19 @@
+{
+  "RESUMEN_GENERAL": {
+    "total_registros": 46400,
+    "features_numericas_analizadas": 14,
+    "porcentaje_completitud": "97.9%"
+  },
+  "ESTADISTICOS_CLAVE": {
+    "matricula_promedio_g1": "40.7",
+    "matricula_promedio_g5": "34.3",
+    "ratio_promedio_g1": "18.8",
+    "total_docentes_promedio": "12.5"
+  },
+  "RECOMENDACIONES_MODELADO": {
+    "Tratamiento de Nulos": "Imputar la tasa de valores nulos usando la mediana o moda por estrato.",
+    "Contrato Permanente": "Considerar binarización o transformación no lineal ante la distribución bimodal.",
+    "Escalamiento": "Aplicar estandarización robusta (RobustScaler) debido al volumen de outliers.",
+    "Feature Engineering": "Construir interacciones complejas entre el total de docentes y las matrículas consolidadas."
+  }
+}
