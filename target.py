@@ -75,7 +75,7 @@ def render_target(df):
     st.divider()
 
     # =========================================================================
-    # BLOQUE 4: Análisis de Escuelas con Retiro Cero vs Positivo (CORREGIDO DEFENSIBO)
+    # BLOQUE 4: Análisis de Escuelas con Retiro Cero vs Positivo (100% BLINDADO)
     # =========================================================================
     st.header("4. Análisis de Escuelas con Retiro Cero vs Positivo (Filtro de Deserción Activa)")
     
@@ -94,20 +94,19 @@ def render_target(df):
         pct_cero.append(pct_c_val)
         pct_positivo.append(pct_p_val)
         
-       # Reemplaza el bloque dentro del for por este código limpio con funciones NumPy:
         data_pos = data[data > 0].values
         
-        # Blindaje para Matplotlib Boxplot: Si una serie está vacía, inyectamos un array seguro con [0.0]
+        # Guardamos como lista pura de Python para transferir de forma segura a Streamlit
         if len(data_pos) == 0:
-            data_pos_boxplot.append(np.array([0.0]))
+            data_pos_boxplot.append([0.0])
         else:
-            data_pos_boxplot.append(data_pos)
+            data_pos_boxplot.append(data_pos.tolist())
         
         stats_positivo.append({
             'Grado': grado, 
             'N_Escuelas_Positivo': len(data_pos),
             'Media_Positivo': np.mean(data_pos) if len(data_pos) > 0 else 0.0,
-            'Mediana_Positivo': np.median(data_pos) if len(data_pos) > 0 else 0.0, # <-- CORREGIDO USANDO NP.MEDIAN
+            'Mediana_Positivo': np.median(data_pos) if len(data_pos) > 0 else 0.0,
             'Std_Positivo': np.std(data_pos) if len(data_pos) > 1 else 0.0,
             'Min_Positivo': np.min(data_pos) if len(data_pos) > 0 else 0.0,
             'Max_Positivo': np.max(data_pos) if len(data_pos) > 0 else 0.0
@@ -115,53 +114,62 @@ def render_target(df):
 
     stats_pos_df = pd.DataFrame(stats_positivo)
 
-    fig_composite, axes = plt.subplots(2, 2, figsize=(16, 12))
+    # Creamos la composición gráfica de Matplotlib limpia sin el Boxplot problemático
+    fig_composite, axes = plt.subplots(1, 2, figsize=(16, 6))
     x = np.arange(len(grados))
     width = 0.35
     
-    axes[0,0].bar(x - width/2, pct_cero, width, label='Retiro = 0%', color='lightgreen', alpha=0.8)
-    axes[0,0].bar(x + width/2, pct_positivo, width, label='Retiro > 0%', color='lightcoral', alpha=0.8)
-    axes[0,0].set_xticks(x)
-    axes[0,0].set_xticklabels(grados)
-    axes[0,0].set_title("Proporción Retiro Cero vs Positivo", weight='bold')
-    axes[0,0].legend()
-    axes[0,0].grid(True, alpha=0.3)
+    # Subplot 1: Distribución Porcentual Proporcional
+    axes[0].bar(x - width/2, pct_cero, width, label='Retiro = 0%', color='lightgreen', alpha=0.8)
+    axes[0].bar(x + width/2, pct_positivo, width, label='Retiro > 0%', color='lightcoral', alpha=0.8)
+    axes[0].set_xticks(x)
+    axes[0].set_xticklabels(grados)
+    axes[0].set_title("Proporción Retiro Cero vs Positivo", weight='bold')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
 
+    # Subplot 2: Histograma Densidad de Escuelas Activas
     for i, target_col in enumerate(target_cols):
         data_p = df_with_targets[target_col].dropna()
         data_p_filtered = data_p[data_p > 0]
         if len(data_p_filtered) > 0: 
-            axes[0,1].hist(data_p_filtered, bins=30, alpha=0.6, label=target_col.split('_')[-1].upper(), density=True)
-    axes[0,1].set_title("Densidad de Probabilidad (Retiro > 0%)", weight='bold')
-    axes[0,1].legend()
-    axes[0,1].grid(True, alpha=0.3)
-
-    # Eliminar la tabla estática de Matplotlib dentro del subplot para evitar encapuchamientos estéticos
-    axes[1,0].axis('off')
-    axes[1,0].text(0.1, 0.5, "📊 Resumen de Distribución\n(Ver tabla detallada interactiva\na la derecha del panel)", 
-                   fontsize=14, weight='bold', color='#555555')
-
-    # Boxplot blindado contra fallas de secuencias vacías
-    axes[1,1].boxplot(data_pos_boxplot, labels=grados, patch_artist=True, 
-                      boxprops=dict(facecolor='lightcoral', alpha=0.7), 
-                      medianprops=dict(color='darkred', linewidth=2))
-    axes[1,1].set_title("Diagrama de Cajas (Solo Retiro > 0%)", weight='bold')
-    axes[1,1].grid(True, alpha=0.3)
+            axes[1].hist(data_p_filtered, bins=30, alpha=0.6, label=target_col.split('_')[-1].upper(), density=True)
+    axes[1].set_title("Densidad de Probabilidad (Retiro > 0%)", weight='bold')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
     
     plt.tight_layout()
     fig_composite.savefig('./outputs/analisis_retiro_cero_vs_positivo.png', dpi=300, bbox_inches='tight')
     
-    # Renderizado en columnas interactivo de Streamlit
+    # Renderizado inteligente estructurado por columnas de Streamlit
     col_g1, col_g2 = st.columns([1.4, 1])
     with col_g1:
-        st.markdown("**📊 Cuadrante Estadístico del Backend (Matplotlib)**")
+        st.markdown("**📊 Distribuciones e Histogramas del Backend**")
         st.pyplot(fig_composite)
+        plt.close(fig_composite)
+        
+        # Renderizado del Diagrama de Cajas interactivo de forma nativa e indestructible
+        st.markdown("**📦 Diagrama de Cajas Interactivo (Solo Retiro > 0%)**")
+        boxplot_data = []
+        for g_name, values in zip(grados, data_pos_boxplot):
+            for v in values:
+                boxplot_data.append({"Grado": g_name, "Tasa de Retiro": v})
+        
+        if boxplot_data:
+            df_box = pd.DataFrame(boxplot_data)
+            st.vega_lite_chart(df_box, {
+                'mark': {'type': 'boxplot', 'extent': 'min-max'},
+                'encoding': {
+                    'x': {'field': 'Grado', 'type': 'nominal', 'axis': {'labelAngle': 0}},
+                    'y': {'field': 'Tasa de Retiro', 'type': 'quantitative'},
+                    'color': {'field': 'Grado', 'type': 'nominal', 'legend': None}
+                }
+            }, use_container_width=True)
     
     with col_g2:
         st.markdown("### 📋 Estadísticas Básicas (Retiro > 0%)")
         st.dataframe(stats_pos_df.round(4), hide_index=True, use_container_width=True)
 
-    plt.close(fig_composite)
     st.divider()
 
     # =========================================================================
@@ -215,7 +223,7 @@ def render_target(df):
     with col_rep_der:
         st.markdown("### 🎯 Patrones Identificados y Conclusiones")
         
-        # Validamos dinámicamente si las columnas existen para evitar fallos de strings
+        # Validamos dinámicamente si las columnas existen en mayúsculas o minúsculas
         g1_mean = df_with_targets.get('TARGET_RETIRO_G1', df_with_targets.get('target_retiro_g1', pd.Series([0]))).mean() * 100
         g4_mean = df_with_targets.get('TARGET_RETIRO_G4', df_with_targets.get('target_retiro_g4', pd.Series([0]))).mean() * 100
         g5_std = df_with_targets.get('TARGET_RETIRO_G5', df_with_targets.get('target_retiro_g5', pd.Series([0]))).std()
