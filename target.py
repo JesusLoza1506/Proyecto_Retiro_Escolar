@@ -9,8 +9,12 @@ def render_target(df):
     st.markdown("*Este módulo audita el comportamiento de las variables objetivo (tasas de deserción escolar) desglosadas por grado académico.*")
     st.divider()
     
-    # Identificación analítica de columnas idéntica a tu backend
-    target_cols = [col for col in df.columns if col.startswith('TARGET_')]
+    # Identificación analítica de columnas idéntica a tu backend (aseguramos mayúsculas)
+    target_cols = [col for col in df.columns if col.upper().startswith('TARGET_')]
+    if not target_cols:
+        st.error("❌ No se detectaron columnas que empiecen con 'TARGET_' en el conjunto de datos.")
+        return
+        
     df_with_targets = df.dropna(subset=target_cols, how='all').copy()
 
     # =========================================================================
@@ -32,7 +36,7 @@ def render_target(df):
     for target_col in target_cols:
         data = df_with_targets[target_col].dropna()
         stats_summary.append({
-            'Grado': target_col.split('_')[-1], 'Escuelas Evaluadas': len(data), 'Media': data.mean(),
+            'Grado': target_col.split('_')[-1].upper(), 'Escuelas Evaluadas': len(data), 'Media': data.mean(),
             'Mediana': data.median(), 'Desviación Estándar': data.std(),
             'Mínimo': data.min(), 'Máximo': data.max(), 'Escuelas Retiro Cero': (data == 0).sum(),
             'Pct Retiro Cero (%)': (data == 0).mean() * 100
@@ -41,62 +45,70 @@ def render_target(df):
     st.divider()
 
     # =========================================================================
-    # BLOQUE 3: Distribuciones de las Tasas de Retiro por Grado (CORREGIDO)
+    # BLOQUE 3: Distribuciones de las Tasas de Retiro por Grado
     # =========================================================================
     st.header("3. Distribuciones Visuales de las Tasas de Retiro")
-    if not os.path.exists('./outputs'): os.makedirs('./outputs')
+    if not os.path.exists('./outputs'): 
+        os.makedirs('./outputs')
     
     fig_hist, axes_h = plt.subplots(2, 3, figsize=(18, 11))
     axes_h = axes_h.flatten()
     colors_h = ['#4A90E2', '#50E3C2', '#F5A623', '#E2849A', '#9B51E0']
     for i, target_col in enumerate(target_cols):
         data = df_with_targets[target_col].dropna()
-        axes_h[i].hist(data, bins=50, alpha=0.75, color=colors_h[i], edgecolor='black')
-        axes_h[i].axvline(data.mean(), color='#D0021B', linestyle='--', label=f'Media: {data.mean():.4f}')
-        axes_h[i].axvline(data.median(), color='#F8E71C', linestyle='-', label=f'Mediana: {data.median():.4f}')
-        axes_h[i].set_title(f'Distribución Tasas de Retiro - {target_col.split("_")[-1]}', weight='bold')
+        axes_h[i].hist(data, bins=50, alpha=0.75, color=colors_h[min(i, len(colors_h)-1)], edgecolor='black')
+        axes_h[i].axvline(data.mean() if len(data) > 0 else 0, color='#D0021B', linestyle='--', label=f'Media: {data.mean():.4f}')
+        axes_h[i].axvline(data.median() if len(data) > 0 else 0, color='#F8E71C', linestyle='-', label=f'Mediana: {data.median():.4f}')
+        axes_h[i].set_title(f'Distribución Tasas de Retiro - {target_col.split("_")[-1].upper()}', weight='bold')
         axes_h[i].legend()
-    axes_h[5].remove()
+    
+    # Remover subplots vacíos excedentes de forma dinámica si hay menos de 6
+    for j in range(len(target_cols), len(axes_h)):
+        fig_hist.delaxes(axes_h[j])
+        
     plt.tight_layout()
-    
-    # [CORRECCIÓN] 1. Guardar en disco local
     fig_hist.savefig('./outputs/distribucion_tasas_retiro.png', dpi=300, bbox_inches='tight')
-    
-    # [CORRECCIÓN] 2. Renderizar visualmente en Streamlit ANTES de cerrar
     st.pyplot(fig_hist)
-    
-    # [CORRECCIÓN] 3. Cerrar de forma segura para limpiar memoria RAM
     plt.close(fig_hist)
     
     st.info("💡 *Los gráficos de distribución global han sido generados, mostrados y exportados con éxito.*")
     st.divider()
 
     # =========================================================================
-    # BLOQUE 4: Análisis de Escuelas con Retiro Cero vs Positivo (CORREGIDO)
+    # BLOQUE 4: Análisis de Escuelas con Retiro Cero vs Positivo (CORREGIDO DEFENSIBO)
     # =========================================================================
     st.header("4. Análisis de Escuelas con Retiro Cero vs Positivo (Filtro de Deserción Activa)")
     
-    grados = [col.split('_')[-1] for col in target_cols]
+    grados = [col.split('_')[-1].upper() for col in target_cols]
     pct_cero = []
     pct_positivo = []
     stats_positivo = []
     data_pos_boxplot = []
 
     for target_col in target_cols:
-        grado = target_col.split('_')[-1]
+        grado = target_col.split('_')[-1].upper()
         data = df_with_targets[target_col].dropna()
-        pct_cero.append((data == 0).mean() * 100)
-        pct_positivo.append((data > 0).mean() * 100)
-        data_pos = data[data > 0]
-        data_pos_boxplot.append(data_pos)
+        
+        pct_c_val = (data == 0).mean() * 100 if len(data) > 0 else 0
+        pct_p_val = (data > 0).mean() * 100 if len(data) > 0 else 0
+        pct_cero.append(pct_c_val)
+        pct_positivo.append(pct_p_val)
+        
+        data_pos = data[data > 0].values
+        
+        # Blindaje para Matplotlib Boxplot: Si una serie está vacía, inyectamos un array seguro con [0.0]
+        if len(data_pos) == 0:
+            data_pos_boxplot.append(np.array([0.0]))
+        else:
+            data_pos_boxplot.append(data_pos)
         
         stats_positivo.append({
             'Grado': grado, 'N_Escuelas_Positivo': len(data_pos),
-            'Media_Positivo': data_pos.mean() if len(data_pos) > 0 else np.nan,
-            'Mediana_Positivo': data_pos.median() if len(data_pos) > 0 else np.nan,
-            'Std_Positivo': data_pos.std() if len(data_pos) > 0 else np.nan,
-            'Min_Positivo': data_pos.min() if len(data_pos) > 0 else np.nan,
-            'Max_Positivo': data_pos.max() if len(data_pos) > 0 else np.nan
+            'Media_Positivo': data_pos.mean() if len(data_pos) > 0 else 0.0,
+            'Mediana_Positivo': data_pos.median() if len(data_pos) > 0 else 0.0,
+            'Std_Positivo': data_pos.std() if len(data_pos) > 1 else 0.0,
+            'Min_Positivo': data_pos.min() if len(data_pos) > 0 else 0.0,
+            'Max_Positivo': data_pos.max() if len(data_pos) > 0 else 0.0
         })
 
     stats_pos_df = pd.DataFrame(stats_positivo)
@@ -104,32 +116,40 @@ def render_target(df):
     fig_composite, axes = plt.subplots(2, 2, figsize=(16, 12))
     x = np.arange(len(grados))
     width = 0.35
+    
     axes[0,0].bar(x - width/2, pct_cero, width, label='Retiro = 0%', color='lightgreen', alpha=0.8)
     axes[0,0].bar(x + width/2, pct_positivo, width, label='Retiro > 0%', color='lightcoral', alpha=0.8)
     axes[0,0].set_xticks(x)
     axes[0,0].set_xticklabels(grados)
+    axes[0,0].set_title("Proporción Retiro Cero vs Positivo", weight='bold')
     axes[0,0].legend()
     axes[0,0].grid(True, alpha=0.3)
 
     for i, target_col in enumerate(target_cols):
         data_p = df_with_targets[target_col].dropna()
         data_p_filtered = data_p[data_p > 0]
-        if len(data_p_filtered) > 0: axes[0,1].hist(data_p_filtered, bins=30, alpha=0.6, label=target_col.split('_')[-1], density=True)
+        if len(data_p_filtered) > 0: 
+            axes[0,1].hist(data_p_filtered, bins=30, alpha=0.6, label=target_col.split('_')[-1].upper(), density=True)
+    axes[0,1].set_title("Densidad de Probabilidad (Retiro > 0%)", weight='bold')
     axes[0,1].legend()
     axes[0,1].grid(True, alpha=0.3)
 
+    # Eliminar la tabla estática de Matplotlib dentro del subplot para evitar encapuchamientos estéticos
     axes[1,0].axis('off')
-    table = axes[1,0].table(cellText=stats_pos_df.round(4).values, colLabels=stats_pos_df.columns, cellLoc='center', loc='center')
-    table.scale(1.2, 1.5)
+    axes[1,0].text(0.1, 0.5, "📊 Resumen de Distribución\n(Ver tabla detallada interactiva\na la derecha del panel)", 
+                   fontsize=14, weight='bold', color='#555555')
 
-    axes[1,1].boxplot(data_pos_boxplot, labels=grados, patch_artist=True, boxprops=dict(facecolor='lightcoral', alpha=0.7), medianprops=dict(color='darkred', linewidth=2))
+    # Boxplot blindado contra fallas de secuencias vacías
+    axes[1,1].boxplot(data_pos_boxplot, labels=grados, patch_artist=True, 
+                      boxprops=dict(facecolor='lightcoral', alpha=0.7), 
+                      medianprops=dict(color='darkred', linewidth=2))
+    axes[1,1].set_title("Diagrama de Cajas (Solo Retiro > 0%)", weight='bold')
     axes[1,1].grid(True, alpha=0.3)
-    plt.tight_layout()
     
-    # [CORRECCIÓN] 1. Guardar composición de 4 cuadrantes en disco
+    plt.tight_layout()
     fig_composite.savefig('./outputs/analisis_retiro_cero_vs_positivo.png', dpi=300, bbox_inches='tight')
     
-    # [CORRECCIÓN] 2. Estructuración visual en Streamlit para mostrar Gráficas + Dataframe
+    # Renderizado en columnas interactivo de Streamlit
     col_g1, col_g2 = st.columns([1.4, 1])
     with col_g1:
         st.markdown("**📊 Cuadrante Estadístico del Backend (Matplotlib)**")
@@ -139,9 +159,7 @@ def render_target(df):
         st.markdown("### 📋 Estadísticas Básicas (Retiro > 0%)")
         st.dataframe(stats_pos_df.round(4), hide_index=True, use_container_width=True)
 
-    # [CORRECCIÓN] 3. Cerrar la figura una vez pintada en el navegador
     plt.close(fig_composite)
-
     st.divider()
 
     # =========================================================================
@@ -156,17 +174,17 @@ def render_target(df):
     }
 
     for target_col in target_cols:
-        grado = target_col.split('_')[-1]
+        grado = target_col.split('_')[-1].upper()
         data = df_with_targets[target_col].dropna()
         data_pos = data[data > 0]
         
         reporte_final['Grado'].append(grado)
         reporte_final['N_Total'].append(len(data))
-        reporte_final['Media_General'].append(data.mean())
-        reporte_final['Pct_Retiro_Cero'].append((data == 0).mean() * 100)
+        reporte_final['Media_General'].append(data.mean() if len(data) > 0 else 0.0)
+        reporte_final['Pct_Retiro_Cero'].append((data == 0).mean() * 100 if len(data) > 0 else 0.0)
         reporte_final['N_Retiro_Positivo'].append(len(data_pos))
-        reporte_final['Media_Retiro_Positivo'].append(data_pos.mean() if len(data_pos) > 0 else 0)
-        reporte_final['Max_Retiro'].append(data.max())
+        reporte_final['Media_Retiro_Positivo'].append(data_pos.mean() if len(data_pos) > 0 else 0.0)
+        reporte_final['Max_Retiro'].append(data.max() if len(data) > 0 else 0.0)
 
     reporte_df = pd.DataFrame(reporte_final)
     reporte_df.to_csv('./outputs/reporte_distribucion_target.csv', index=False)
@@ -195,9 +213,10 @@ def render_target(df):
     with col_rep_der:
         st.markdown("### 🎯 Patrones Identificados y Conclusiones")
         
-        g1_mean = df_with_targets['TARGET_RETIRO_G1'].mean() * 100
-        g4_mean = df_with_targets['TARGET_RETIRO_G4'].mean() * 100
-        g5_std = df_with_targets['TARGET_RETIRO_G5'].std()
+        # Validamos dinámicamente si las columnas existen para evitar fallos de strings
+        g1_mean = df_with_targets.get('TARGET_RETIRO_G1', df_with_targets.get('target_retiro_g1', pd.Series([0]))).mean() * 100
+        g4_mean = df_with_targets.get('TARGET_RETIRO_G4', df_with_targets.get('target_retiro_g4', pd.Series([0]))).mean() * 100
+        g5_std = df_with_targets.get('TARGET_RETIRO_G5', df_with_targets.get('target_retiro_g5', pd.Series([0]))).std()
         
         st.info(f"""
         **📉 Patrones Críticos por Grados:**
